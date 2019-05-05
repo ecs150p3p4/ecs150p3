@@ -4,7 +4,7 @@ objs := sem.o  #tps.o
 Inc := queue.o thread.o
 
 CC := gcc
-CFLAGS := -Wall -Werror
+CFLAGS := -Wall -Werror -g
 
 all: $(lib)
 
