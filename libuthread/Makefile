@@ -1,24 +1,29 @@
 # Target library
 lib := libuthread.a
-
-all: $(lib)
-
-## TODO: Phase 1 and Phase 2
-
-objs := sems.o tps.o 
+objs := sem.o  #tps.o 
+Inc := queue.o thread.o
 
 CC := gcc
 CFLAGS := -Wall -Werror
 
+all: $(lib)
 
-libuthread.a: $(objs)
+## TODO: Phase 1 and Phase 2
+deps := $(patsubst %.o, %.d,$(objs))
+
+
+-include $(deps)
+
+DEPFLAGS = -MMD -MF $(@: .o = .d)
+
+
+
+libuthread.a: $(objs) $(Inc)
 	ar rcs $@ $^
 
-sem.o: sem.c sem.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-tps.o: tps.c tps.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+%.o: %.c
+	@echo "CC $@"
+	$(CC) $(CFLAGS) -c -o $@ $< $(DEPFLAGS)
 
 clean:
-	rm -f $(lib) $(objs)
+	rm -f $(lib) $(objs) $(deps)
