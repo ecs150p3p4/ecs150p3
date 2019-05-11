@@ -1,6 +1,6 @@
 # Target library
 lib := libuthread.a
-objs := sem.o  #tps.o 
+objs := sem.o  tps.o 
 Inc := queue.o thread.o
 
 CC := gcc

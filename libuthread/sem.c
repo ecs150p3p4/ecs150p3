@@ -82,6 +82,7 @@ int sem_up(sem_t sem)
     if (queue_dequeue(sem->block_queue,(void **) &tid) == 0){
         thread_unblock(*tid);
     }else {
+        
         sem->curr_count ++;
     }
     exit_critical_section();
