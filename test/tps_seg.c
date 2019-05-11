@@ -5,31 +5,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #include <tps.h>
 #include <sem.h>
 
-static char msg1[TPS_SIZE] = "Hello world!\n";
-static char msg2[TPS_SIZE] = "hello world!\n";
-
-static sem_t sem1, sem2;
-void* global_addr;
-
-void* __real_mmap(void *address, size_t length, int protect, int flags, int filedes, off_t offset){
-void* __wrap_mmap(void *address, size_t length, int protect, int flags, int filedes, off_t offset){
-    global_addr = __real_mmap(address, length, protect, flags, filedes, offset);
-    return global_addr;
+void *latest_mmap_addr; // global variable to make address returned by mmap accessible
+void *__real_mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off);
+void *__wrap_mmap(void *addr, size_t len, int prot, int flags, int fildes, off_t off){
+    latest_mmap_addr = __real_mmap(addr, len, prot, flags, fildes, off);return latest_mmap_addr;
 }
+
 
 void *thread1(void* arg)
 {
-	pthread_t tid;
-	char *buffer = malloc(TPS_SIZE);
 
 	tps_create();
 
     /*seg fault*/
-    *(char*)global_addr = 'c';
-	
+    char *tps_addr = latest_mmap_addr;
+    
+    tps_addr[0] = '\0';
+    
 	tps_destroy();
 	return NULL;
 }
@@ -37,7 +33,6 @@ void *thread1(void* arg)
 int main(int argc, char **argv)
 {
 	pthread_t tid;
-
 
 	/* Init TPS API */
 	tps_init(1);
