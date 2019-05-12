@@ -4,7 +4,7 @@ programs := \
 	sem_buffer.x \
 	sem_prime.x \
 	tps.x\
-	tps_seg.x
+	tps_err.x
 
 # User-level thread library
 UTHREADLIB := libuthread
@@ -62,7 +62,7 @@ $(libuthread):
 	@echo "MAKE	$@"
 	$(Q)$(MAKE) V=$(V) D=$(D) -C $(UTHREADPATH)
 
-tps_seg.o: CFLAGS += -Wl -wrap=mmap
+tps_err.x: CFLAGS += -Wl,--wrap=mmap
 
 # Generic rule for linking final applications
 %.x: %.o $(libuthread)

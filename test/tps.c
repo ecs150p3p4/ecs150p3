@@ -18,8 +18,8 @@ void *thread2(void* arg)
 	char *buffer = malloc(TPS_SIZE);
 
 	/* Create TPS and initialize with *msg1 */
-	tps_create();
-	tps_write(0, TPS_SIZE, msg1);
+	assert(tps_create() == 0);
+	assert(tps_write(0, TPS_SIZE, msg1) == 0);
 
 	/* Read from TPS and make sure it contains the message */
 	memset(buffer, 0, TPS_SIZE);
@@ -42,7 +42,7 @@ void *thread2(void* arg)
 	sem_down(sem2);
 
 	/* Destroy TPS and quit */
-	tps_destroy();
+	assert(tps_destroy() == 0);
 	return NULL;
 }
 
@@ -56,11 +56,11 @@ void *thread1(void* arg)
 	sem_down(sem1);
 
 	/* When we're back, clone thread 2's TPS */
-	tps_clone(tid);
+	assert(tps_clone(tid) == 0);
 
 	/* Read the TPS and make sure it contains the original */
 	memset(buffer, 0, TPS_SIZE);
-	tps_read(0, TPS_SIZE, buffer);
+	assert(tps_read(0, TPS_SIZE, buffer) == 0);
 	assert(!memcmp(msg1, buffer, TPS_SIZE));
 	printf("thread1: read OK!\n");
 
@@ -96,7 +96,8 @@ int main(int argc, char **argv)
 	sem2 = sem_create(0);
 
 	/* Init TPS API */
-	tps_init(1);
+	assert(tps_init(1) == 0);
+    
 
 	/* Create thread 1 and wait */
 	pthread_create(&tid, NULL, thread1, NULL);
