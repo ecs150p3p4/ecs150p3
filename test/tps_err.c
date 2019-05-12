@@ -122,7 +122,8 @@ void test_seg()
   pthread_join(tid, NULL);
 }
 
-void test_read_write_create_destroy(){
+void test_read_write_create_destroy()
+{
   pthread_t tid;
 
   pthread_create(&tid, NULL, thread2, NULL);
