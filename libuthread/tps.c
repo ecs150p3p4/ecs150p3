@@ -45,7 +45,7 @@ static int find_addr(void* data, void* argv){
 
 static void segv_handler(int sig, siginfo_t *si, void *context)
 {
-    tps* my_tps;
+    tps* my_tps = NULL;
     /*
      * Get the address corresponding to the beginning of the page where the
      * fault occurred
@@ -101,7 +101,7 @@ int tps_create(void)
 {
 	/* TODO: Phase 2 */
     pthread_t cur_tid = pthread_self();
-    tps* my_tps;
+    tps* my_tps = NULL;
     enter_critical_section();
     queue_iterate(tps_queue, find_tps, (void*)&cur_tid, (void**)&my_tps);
     exit_critical_section();
@@ -137,20 +137,25 @@ int tps_destroy(void)
 {
 	/* TODO: Phase 2 */
     pthread_t cur_tid = pthread_self();
-    tps* my_tps;
+    tps* my_tps = NULL;
     enter_critical_section();
     queue_iterate(tps_queue, find_tps, (void*)&cur_tid, (void**)&my_tps);
     exit_critical_section();
     if (my_tps == NULL){
         return -1;
     }
+    
     enter_critical_section();
     queue_delete(tps_queue, (void*) my_tps);
     exit_critical_section();
-    munmap(my_tps->tps_page->addr, TPS_SIZE);
-    free(my_tps->tps_page);
-    free(my_tps);
-    
+    if (my_tps->tps_page->reference_count > 1){
+        my_tps->tps_page->reference_count --;
+        free(my_tps);
+    }else if (my_tps->tps_page->reference_count == 1){
+        munmap(my_tps->tps_page->addr, TPS_SIZE);
+        free(my_tps->tps_page);
+        free(my_tps);
+    }
     
     return 0;
 }
@@ -159,7 +164,7 @@ int tps_read(size_t offset, size_t length, char *buffer)
 {
 	/* TODO: Phase 2 */
     pthread_t cur_tid = pthread_self();
-    tps* my_tps;
+    tps* my_tps = NULL;
     enter_critical_section();
     queue_iterate(tps_queue, find_tps, (void*)&cur_tid, (void**)&my_tps);
     exit_critical_section();
@@ -176,7 +181,7 @@ int tps_write(size_t offset, size_t length, char *buffer)
 {
 	/* TODO: Phase 2 */
     pthread_t cur_tid = pthread_self();
-    tps* my_tps;
+    tps* my_tps = NULL;
     enter_critical_section();
     queue_iterate(tps_queue, find_tps, (void*)&cur_tid, (void**)&my_tps);
     exit_critical_section();
@@ -238,7 +243,7 @@ int tps_clone(pthread_t tid)
      
     */
     pthread_t cur_tid = pthread_self();
-    tps* my_tps;
+    tps* my_tps = NULL;
     enter_critical_section();
     queue_iterate(tps_queue, find_tps, (void*)&cur_tid, (void**)&my_tps);
     exit_critical_section();

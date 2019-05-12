@@ -11,7 +11,7 @@
 static char msg1[TPS_SIZE] = "Hello world!\n";
 static char msg2[TPS_SIZE] = "hello world!\n";
 
-static sem_t sem1, sem2;
+static sem_t sem1, sem2, sem3, sem4;
 
 void *thread2(void* arg)
 {
@@ -87,24 +87,82 @@ void *thread1(void* arg)
 	return NULL;
 }
 
+void test1(){
+    pthread_t tid;
+    
+    /* Create two semaphores for thread synchro */
+    sem1 = sem_create(0);
+    sem2 = sem_create(0);
+    
+    /* Create thread 1 and wait */
+    pthread_create(&tid, NULL, thread1, NULL);
+    pthread_join(tid, NULL);
+    
+    /* Destroy resources and quit */
+    sem_destroy(sem1);
+    sem_destroy(sem2);
+}
+
+void *thread4(void* arg){
+    char *buffer = malloc(TPS_SIZE);
+    
+    tps_create();
+    
+    assert(tps_write(0, TPS_SIZE, msg1) == 0);
+    sem_up(sem3);
+    sem_down(sem4);
+    
+    memset(buffer, 0, TPS_SIZE);
+    assert(tps_read(0, TPS_SIZE, buffer) == 0);
+    assert(!memcmp(msg1, buffer, TPS_SIZE));
+    sem_up(sem3);
+    sem_down(sem4);
+    
+    return NULL;
+}
+
+void *thread3(void* arg){
+    
+    pthread_t tid;
+    pthread_create(&tid, NULL, thread4, NULL);
+    sem_down(sem3);
+    
+    tps_clone(tid);
+    
+    tps_destroy();
+    sem_up(sem4);
+    
+    sem_down(sem3);
+    
+    sem_up(sem4);
+    
+    return NULL;
+}
+
+void test2(){
+    pthread_t tid;
+    
+    /* Create two semaphores for thread synchro */
+    sem3 = sem_create(0);
+    sem4 = sem_create(0);
+    
+    /* Create thread 1 and wait */
+    pthread_create(&tid, NULL, thread3, NULL);
+    pthread_join(tid, NULL);
+    
+    /* Destroy resources and quit */
+    sem_destroy(sem3);
+    sem_destroy(sem4);
+}
+
 int main(int argc, char **argv)
 {
-	pthread_t tid;
-
-	/* Create two semaphores for thread synchro */
-	sem1 = sem_create(0);
-	sem2 = sem_create(0);
-
-	/* Init TPS API */
+	
 	assert(tps_init(1) == 0);
     
-
-	/* Create thread 1 and wait */
-	pthread_create(&tid, NULL, thread1, NULL);
-	pthread_join(tid, NULL);
-
-	/* Destroy resources and quit */
-	sem_destroy(sem1);
-	sem_destroy(sem2);
+    test1();
+    test2();
+    
+    
 	return 0;
 }
