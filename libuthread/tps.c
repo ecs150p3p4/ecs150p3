@@ -233,9 +233,10 @@ int tps_write(size_t offset, size_t length, char *buffer)
 
 int tps_clone(pthread_t tid)
 {
-  tps* target_tps;
-  pthread_t cur_tid = pthread_self();
+  tps* target_tps = NULL;
   tps* my_tps = NULL;
+  pthread_t cur_tid = pthread_self();
+
   //seach for target tps in queue
   enter_critical_section();
   queue_iterate(tps_queue, find_tps, (void*)&tid, (void**)&target_tps);
