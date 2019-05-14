@@ -88,7 +88,7 @@ int sem_up(sem_t sem)
     thread_unblock(*tid);
     free(tid); //free dequeued tid
   }
-  //else incriment count
+  //else incriment countif
   else {
     sem->curr_count ++;
   }
