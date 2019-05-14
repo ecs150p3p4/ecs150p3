@@ -110,6 +110,7 @@ void *thread4(void* arg)
   sem_up(sem3);
   sem_down(sem4);
 
+  free(buffer);
   return NULL;
 
 }
@@ -173,7 +174,6 @@ int main(int argc, char **argv)
 
     test_clone_write();
     test_destroy_clone();
-
-
+    
 	return 0;
 }
