@@ -43,6 +43,7 @@ void *thread2(void* arg)
 
 	/* Destroy TPS and quit */
 	assert(tps_destroy() == 0);
+    free(buffer);
 	return NULL;
 }
 
@@ -119,6 +120,8 @@ void *thread4(void* arg){
     assert(!memcmp(msg1, buffer, TPS_SIZE));
     sem_up(sem3);
     sem_down(sem4);
+    
+    free(buffer);
     
     return NULL;
 }
