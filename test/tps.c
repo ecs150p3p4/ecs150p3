@@ -126,7 +126,7 @@ void *thread3(void* arg){
     tps_destroy();
 
 		//switch to thead4
-		sem_up(sem4);
+    sem_up(sem4);
     sem_down(sem3);
 
     sem_up(sem4);
@@ -169,7 +169,6 @@ void test_destroy_clone(){
 
 int main(int argc, char **argv)
 {
-
 	assert(tps_init(1) == 0);
 
     test_clone_write();
