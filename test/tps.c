@@ -90,71 +90,77 @@ void *thread1(void* arg)
 	return NULL;
 }
 
-void test1(){
-    pthread_t tid;
-    
-    /* Create two semaphores for thread synchro */
-    sem1 = sem_create(0);
-    sem2 = sem_create(0);
-    
-    /* Create thread 1 and wait */
-    pthread_create(&tid, NULL, thread1, NULL);
-    pthread_join(tid, NULL);
-    
-    /* Destroy resources and quit */
-    sem_destroy(sem1);
-    sem_destroy(sem2);
-}
+void *thread4(void* arg)
+{
+  char *buffer = malloc(TPS_SIZE);
 
-void *thread4(void* arg){
-    char *buffer = malloc(TPS_SIZE);
-    
-    tps_create();
-    
-    assert(tps_write(0, TPS_SIZE, msg1) == 0);
-    sem_up(sem3);
-    sem_down(sem4);
-    
-    memset(buffer, 0, TPS_SIZE);
-    assert(tps_read(0, TPS_SIZE, buffer) == 0);
-    assert(!memcmp(msg1, buffer, TPS_SIZE));
-    sem_up(sem3);
-    sem_down(sem4);
-    
-    free(buffer);
-    
-    return NULL;
+
+  tps_create();
+
+	//write to tps
+  assert(tps_write(0, TPS_SIZE, msg1) == 0);
+	//switch to thread 3
+  sem_up(sem3);
+  sem_down(sem4);
+
+	//read from tps check message is still there
+  memset(buffer, 0, TPS_SIZE);
+  assert(tps_read(0, TPS_SIZE, buffer) == 0);
+  assert(!memcmp(msg1, buffer, TPS_SIZE));
+  sem_up(sem3);
+  sem_down(sem4);
+
+  return NULL;
+
 }
 
 void *thread3(void* arg){
-    
+
     pthread_t tid;
     pthread_create(&tid, NULL, thread4, NULL);
     sem_down(sem3);
-    
+		//clone thread4's tps
     tps_clone(tid);
-    
+		//destroy our reference
     tps_destroy();
-    sem_up(sem4);
-    
+
+		//switch to thead4
+		sem_up(sem4);
     sem_down(sem3);
-    
+
     sem_up(sem4);
-    
+
     return NULL;
 }
 
-void test2(){
+void test_clone_write()
+{
+  pthread_t tid;
+
+  /* Create two semaphores for thread synchro */
+  sem1 = sem_create(0);
+  sem2 = sem_create(0);
+
+  /* Create thread 1 and wait */
+  pthread_create(&tid, NULL, thread1, NULL);
+  pthread_join(tid, NULL);
+
+  /* Destroy resources and quit */
+  sem_destroy(sem1);
+  sem_destroy(sem2);
+}
+
+void test_destroy_clone(){
     pthread_t tid;
-    
+
     /* Create two semaphores for thread synchro */
     sem3 = sem_create(0);
     sem4 = sem_create(0);
-    
+
     /* Create thread 1 and wait */
     pthread_create(&tid, NULL, thread3, NULL);
     pthread_join(tid, NULL);
-    
+
     /* Destroy resources and quit */
     sem_destroy(sem3);
     sem_destroy(sem4);
@@ -162,12 +168,12 @@ void test2(){
 
 int main(int argc, char **argv)
 {
-	
+
 	assert(tps_init(1) == 0);
-    
-    test1();
-    test2();
-    
-    
+
+    test_clone_write();
+    test_destroy_clone();
+
+
 	return 0;
 }
