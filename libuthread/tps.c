@@ -159,15 +159,13 @@ int tps_destroy(void)
   //if more than one tps points to page, deincrement reference_count and free tps block
   if (my_tps->tps_page->reference_count > 1) {
       my_tps->tps_page->reference_count --;
-      free(my_tps);
   }
   //else free page and then free tps block
   else if (my_tps->tps_page->reference_count == 1) {
       munmap(my_tps->tps_page->addr, TPS_SIZE);
       free(my_tps->tps_page);
-      free(my_tps);
   }
-
+    free(my_tps);
   return 0;
 }
 
