@@ -51,37 +51,40 @@ current page. Then each TPS object includes the corresponding thread id and a
 pointer to the page object. A global queue is also defined to store all the 
 pointers to tps objects.
 
+
+
 The initialization of TPS first checks if the global tps queue is created to 
 check if init has already been called. If not, it creates the global queue. 
 It also set the segfault handler if desired by user. The new segfault handler 
-checks if the segfault is within the TPS areas by searching for the  and print the corresponding message, following the template given in the prompt. 
+checks if the segfault is within the TPS areas by searching the queue to see 
+if the seg fault address matches any of the TPS addresses in the queue and then
+prints the corresponding message, following the template given in the prompt. 
 
-We create a tps for the current running thread by allocating memory space for a 
-tps object, the internal page object and the private storage space for this 
+We create a TPS for the current running thread by allocating memory space for a 
+TPS object, the internal page object and the private storage space for this 
 page. We set the port to be PROT_NONE in mmap so the page can't be accessed.
 We also initialize the page count to be 1 and the tid in this tps object to be 
-the current thread's id. Finaly, we let the pointer of this tps object enter 
-the global queue. 
+the current thread's id. Finaly, we enqueue the TPS pointer into the global 
+queue so it can be accessed in later calls. 
 
-When destroying a tps, we first search the tps queue for current thread's tps 
-and delete it in the queue. Then we check if the tps page is refered by 
-multiple tps objects by checking the page count. If it is, we only reduce the 
-count, otherwise we need to free the memory for that page. Finally, we free 
-the tps object.
+When destroying a TPS, we first search the TPS queue for the current thread's TPS 
+and delete it from the queue. Then we check if the TPS page is pointed to by
+multiple TPS objects by checking the page reference count. If it is, we only 
+reduce the count, otherwise we need to free the memory for that page. Finally, 
+we free the TPS object.
 
-The read and write api both search the tps queue for current thread's tps. We 
-use memcpy for both read and write operation and we also need to change 
-permission of the tps pages using mprotect for valid read/write. In order to 
-implement the Copy-on-Write cloning, we will check the page reference count in 
-tps to protect other tps's page. If there are multiple tps refering to this page, 
-we alloate and make a copy for this page first, set the reference count of 
-this new page to be 1 and reduce the count of the old page. We let the current
-thread's tps to point to this new page and finish the writing.
+The read and write api both search the tps queue for the current thread's TPS. We 
+use memcpy for both read and write operation but before we do that we change the 
+permission of the TPS pages using mprotect to allow the read/write opperation. In 
+order to implement the Copy-on-Write cloning in the write function, we will check 
+the page reference count before writing. If there are multiple TPSs refering to this page, 
+we allocate and make a copy of page first, set the reference count of 
+the new page to be 1 and reduce the count of the old page. We let the current
+thread's TPS to point to this new page before completing the actual write.
 
-For the naive clone, we create a new page and use memcpy. But for the
-Copy-on-Write cloning, we don't need to copy the whole page at this point. 
+For Copy-on-Write cloning, we don't need to copy the whole page inside clone. 
 Instead, we let the current thread's page pointer point to the target thread's 
-page so that both tps share the same page. We then increase the count of that
+page so that both TPSs share the same page. We then increase the count of that
 page.
 
 
