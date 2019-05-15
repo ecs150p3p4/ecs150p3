@@ -1,7 +1,7 @@
 
 # ECS150 Project 3 Report
 
-* **Introduction**
+## Introduction
 
 Our semaphore implementation using waiting queue can provide mutual exclusion 
 and syschronization for threads. By maintaining a internal count, the semaphore 
@@ -13,12 +13,12 @@ its private storage. By calling the corresponding API, we implement basic
 operations for each thread's private storage such as read, write and clone.
 
 
-* **Semaphore Implementation**   
+## Semaphore Implementation   
 
 A semaphore object consists of a count number, which counts the current number
 of available resources, and a waiting queue, which a thread will join when it 
-requires a resource and the count is 0. In all folowing APIs, we check the 
-edge cases first.
+requires a resource and the count is 0. In all folowing APIs, we check that the 
+arguements are not null first.
 
 When we create a semaphore, we initialize the count to be the total number
 of resources, which is given as an arguement, and initialize the queue. 
@@ -29,29 +29,29 @@ In order to handle the corner case, if one thread calls sem_up to release the
 resource and there are some threads waiting in the queue, we don't increment 
 the count and let the unblocked thread grab the resource. This strategy will 
 prevent two threads competing for the available resource and also prevent 
-starving the unblocked threads. So in the sem_up, we check whether there 
-are blocked threads waiting in the queue. If so, we  unblock the thread to be 
-scheduled later and don't increment the count. Otherwise we increase the count. 
-When we call sem_down, we first check if there are available resources. If so, 
-we reduce the count, otherwise, we enqueue the current thread's tid and call 
-thread_block. We don't need to recheck the count when the thread is later 
-resumed since sem_up guarantees that this thread will get the resource. All 
-these operations are in critical sections for mutual exclusion since they 
-involve interacting with the queue and checking the count, which are shared 
-variables.
+starving the unblocked threads. 
+
+Therefore in sem_up, we check whether there are blocked threads waiting in the 
+queue. If so, we unblock the thread to be scheduled later and don't increment 
+the count; otherwise we increase the count. When we call sem_down, we first 
+check if there are available resources. If so, we reduce the count, otherwise,
+we enqueue the current thread's tid and call thread_block. We don't need to 
+recheck the count when the thread is later resumed since sem_up guarantees that 
+this thread will get the resource. All these operations are in critical sections 
+for mutual exclusion since they involve interacting with the queue and checking 
+the count, which are shared variables.
 
 For the sem_getvalue function, we check the count, and if above zero return it. 
 Otherwise we return the negative length of the queue.
 
-* **TPS Implementation** 
+## TPS Implementation 
 
-We still choose queue as our data structure to implement TPS. We first define a 
-page structure consisting of the address pointer and the reference count to the 
-current page. Then each TPS object includes the corresponding thread id and a 
-pointer to the page object. A global queue is also defined to store all the 
-pointers to tps objects.
+We have two structs, a page struct and a TPS struct. The page structure consists 
+of the address pointer and the reference count to the current page. Then each TPS 
+object includes the corresponding thread id and a pointer to the page object. 
+Lastly, we have a global queue that stores all the pointers to tps objects.
 
-
+### TPS Initialization
 
 The initialization of TPS first checks if the global tps queue is created to 
 check if init has already been called. If not, it creates the global queue. 
@@ -67,11 +67,15 @@ We also initialize the page count to be 1 and the tid in this tps object to be
 the current thread's id. Finaly, we enqueue the TPS pointer into the global 
 queue so it can be accessed in later calls. 
 
+### TPS Destroy
+
 When destroying a TPS, we first search the TPS queue for the current thread's TPS 
 and delete it from the queue. Then we check if the TPS page is pointed to by
 multiple TPS objects by checking the page reference count. If it is, we only 
 reduce the count, otherwise we need to free the memory for that page. Finally, 
 we free the TPS object.
+
+### TPS Read and Write
 
 The read and write api both search the tps queue for the current thread's TPS. We 
 use memcpy for both read and write operation but before we do that we change the 
@@ -82,25 +86,28 @@ we allocate and make a copy of page first, set the reference count of
 the new page to be 1 and reduce the count of the old page. We let the current
 thread's TPS to point to this new page before completing the actual write.
 
+### TPS Clone
+
 For Copy-on-Write cloning, we don't need to copy the whole page inside clone. 
 Instead, we let the current thread's page pointer point to the target thread's 
 page so that both TPSs share the same page. We then increase the count of that
 page.
 
 
-* **Test**  
+## Testing 
 
 We run and passed all the given test cases for both semaphore and TPS. 
 
-To furhter test our tps api, we create tps_err.c. We check all the error cases
+To further test our TPS api, we created tps_err.c. We check all the error cases
 for tps create, destroy, read, write and clone. We also test illegal 
-memory access by wrapping mmap to check whether the segfault handler works 
-properly. 
+memory access by wrapping the mmap function to return the page location in memory
+to check whether the segfault handler works properly. 
 
-In the test code tps.c, besides testing read, write and clone functions, we 
-also test destroying a cloned page immediately. This is also an edge case since 
-we shouldn't free the whole page.
+In the given test code tps.c, the initial program checks most of the correct 
+functionality of the TPS api by creating and writing to a TPS, then cloning and 
+performing a copy on write. We added an additional test case that destroys a 
+cloned page before it has been written too, which was not captured in the original test.
 
-Our tps api passed all the test cases that we designed. 
+Our TPS api passed all the test cases that we designed. 
 
  
