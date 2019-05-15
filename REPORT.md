@@ -5,7 +5,7 @@
 
 Our semaphore implementation using waiting queue can provide mutual exclusion 
 and syschronization for threads. By maintaining a internal count, the semaphore 
-api can keep thack of the number of available resource so that it controls the 
+api can keep track of the number of available resource so that it controls the 
 access to common resources.
 
 Our TPS(Thread private storage) api can assign threads the ability of creating
@@ -16,43 +16,45 @@ operations for each thread's private storage such as read, write and clone.
 * **Semaphore Implementation**   
 
 A semaphore object consists of a count number, which counts the current number
-of available resource, and a wait queue, which a thread will join when it 
-require for a resource and the count is 0. In all folowing APIs, we check the 
+of available resources, and a waiting queue, which a thread will join when it 
+requires a resource and the count is 0. In all folowing APIs, we check the 
 edge cases first.
 
 When we create a semaphore, we initialize the count to be the total number
-of resource units, which is given, and initialize the queue. Semaphore_destroy
-will destroy the waiting queue first and release the memory of semaphore itself.
+of resources, which is given as an arguement, and initialize the queue. 
+Semaphore_destroy will destroy the waiting queue first and release the memory
+of semaphore itself.
 
 In order to handle the corner case, if one thread calls sem_up to release the
 resource and there are some threads waiting in the queue, we don't increment 
-the count and let the unblocked thread grab the resource. This strategy can not 
-only avoid two threads competing for the available resource, but also prevent 
-sratvation for the unblocked thread. So in the sem_up, we check whether there 
-are blocked threads waiting in the queue. If so, we let the first blocked 
-thread grab the resource. Otherwise we increase the count. When call sem_down, 
-we first check if there are available resources. If so, we reduce the count in 
-the semaphore. Otherwise, we enqueue the current thread's tid and call 
-thread_block. We don't need to recheck the count here since when thread is 
-resumed, sem_up can guarantee that this thread will get the resource. All these
-operations are in critical sections for mutual exclusion.
+the count and let the unblocked thread grab the resource. This strategy will 
+prevent two threads competing for the available resource and also prevent 
+starving the unblocked threads. So in the sem_up, we check whether there 
+are blocked threads waiting in the queue. If so, we  unblock the thread to be 
+scheduled later and don't increment the count. Otherwise we increase the count. 
+When we call sem_down, we first check if there are available resources. If so, 
+we reduce the count, otherwise, we enqueue the current thread's tid and call 
+thread_block. We don't need to recheck the count when the thread is later 
+resumed since sem_up guarantees that this thread will get the resource. All 
+these operations are in critical sections for mutual exclusion since they 
+involve interacting with the queue and checking the count, which are shared 
+variables.
 
-For the sem_getvalue function, it also requires us to check the count first. If
-resources are available, the target value equal the count. Otherwise the target 
-value should be the negative queue length.
+For the sem_getvalue function, we check the count, and if above zero return it. 
+Otherwise we return the negative length of the queue.
 
 * **TPS Implementation** 
 
 We still choose queue as our data structure to implement TPS. We first define a 
 page structure consisting of the address pointer and the reference count to the 
-current page.Then each TPS object includes the corresponding thread id and a 
-page pointer pointing to its page. A global queue is also defined to store all 
+current page. Then each TPS object includes the corresponding thread id and a 
+pointer to the page object. A global queue is also defined to store all the 
 pointers to tps objects.
 
-The initialization of TPS first checks if the global tps queue is created. If 
-not, it creates the global queue. It also set the segfault handler if desired 
-by user. The new segfault handler checks if the segfault is within the TPS 
-areas and print corresponding message. 
+The initialization of TPS first checks if the global tps queue is created to 
+check if init has already been called. If not, it creates the global queue. 
+It also set the segfault handler if desired by user. The new segfault handler 
+checks if the segfault is within the TPS areas by searching for the  and print the corresponding message, following the template given in the prompt. 
 
 We create a tps for the current running thread by allocating memory space for a 
 tps object, the internal page object and the private storage space for this 
